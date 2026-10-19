@@ -10,14 +10,28 @@ using HddDefrag.Core;
 namespace HddDefrag.UI;
 
 /// <summary>
-/// Zeichnet die Clusterkarte als Raster kleiner Blöcke (7 px Block + 1 px Raster) in eine <see cref="WriteableBitmap"/>.
+/// Zeichnet die Clusterkarte als Raster quadratischer Blöcke mit 1 px breiten Rasterlinien in eine <see cref="WriteableBitmap"/>
+/// (Standard: Rastermaß 8 = 7 px Block + 1 px Linie, siehe <see cref="BlockPitch"/>).
+/// <para>
+/// Die Bitmap wird in echten Gerätepixeln angelegt und 1:1 ohne Skalierung gezeichnet, damit die Blöcke auch bei
+/// Windows-Skalierung (125 %, 150 % …) scharf und gleich groß bleiben. Das Raster wird in der Fläche zentriert,
+/// der Rest wird mit der Rasterfarbe gefüllt.
+/// </para>
 /// Die Aktualisierung ist gedrosselt: <see cref="IDefragEngine.MapChanged"/> markiert die Karte nur als veraltet,
 /// ein Timer rendert höchstens alle ~150 ms neu.
 /// </summary>
 public sealed class ClusterMapControl : FrameworkElement
 {
-    private const int BlockSize = 7;
-    private const int CellSize = BlockSize + 1; // Block + 1 px Rasterlinie
+    /// <summary>
+    /// Rastermaß in Gerätepixeln: Blockkante plus 1 px Rasterlinie (3 bis 65). Hauptfenster 8, Vollbild 7.
+    /// </summary>
+    public static readonly DependencyProperty BlockPitchProperty = DependencyProperty.Register(
+        nameof(BlockPitch), typeof(int), typeof(ClusterMapControl),
+        new FrameworkPropertyMetadata(8, OnBlockPitchChanged),
+        value => (int)value >= 3 && (int)value <= 65);
+
+    private int _pitch = 8;
+    private int BlockEdge => _pitch - 1; // Block ohne Rasterlinie
 
     private readonly DispatcherTimer _timer;
     private readonly ToolTip _tip = new();
@@ -31,10 +45,10 @@ public sealed class ClusterMapControl : FrameworkElement
     private uint[] _gridTemplate = Array.Empty<uint>();
     private ClusterState[] _states = Array.Empty<ClusterState>();
     private int _cols, _rows, _pixelWidth, _pixelHeight;
-    private double _dpiScale = 1.0;
+    private double _dpiX = 1.0, _dpiY = 1.0;
+    private int _offsetX, _offsetY; // Zentrierung des Rasters in Gerätepixeln
     private volatile bool _dirty;
     private bool _subscribed;
-    private int _lastTipIndex = -1;
 
     public ClusterMapControl()
     {
@@ -61,15 +75,30 @@ public sealed class ClusterMapControl : FrameworkElement
 
         Loaded += (_, _) =>
         {
+            // Erst jetzt ist der Monitor (und damit die DPI) sicher bekannt.
+            UpdateGrid(force: true);
             Subscribe();
             _timer.Start();
-            Refresh();
         };
         Unloaded += (_, _) =>
         {
             _timer.Stop();
             Unsubscribe();
         };
+    }
+
+    /// <summary>Rastermaß in Gerätepixeln (Blockkante + 1 px Rasterlinie), 3 bis 65.</summary>
+    public int BlockPitch
+    {
+        get => (int)GetValue(BlockPitchProperty);
+        set => SetValue(BlockPitchProperty, value);
+    }
+
+    private static void OnBlockPitchChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var map = (ClusterMapControl)d;
+        map._pitch = (int)e.NewValue;
+        map.UpdateGrid(force: true); // die Anzahl der Blöcke ändert sich
     }
 
     /// <summary>Die Engine, deren Karte angezeigt wird (darf null sein).</summary>
@@ -134,27 +163,60 @@ public sealed class ClusterMapControl : FrameworkElement
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
-        _dpiScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
-        int pxW = (int)Math.Floor(sizeInfo.NewSize.Width * _dpiScale);
-        int pxH = (int)Math.Floor(sizeInfo.NewSize.Height * _dpiScale);
-        int cols = Math.Max(0, (pxW - 1) / CellSize);
-        int rows = Math.Max(0, (pxH - 1) / CellSize);
-        if (cols == _cols && rows == _rows && _bitmap != null) return;
+        UpdateGrid(force: false);
+    }
 
-        _cols = cols;
-        _rows = rows;
-        _lastTipIndex = -1;
-        if (cols == 0 || rows == 0)
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+    {
+        base.OnDpiChanged(oldDpi, newDpi);
+        UpdateGrid(force: true); // anderer Monitor: Bitmap in der neuen Gerätepixelgröße aufbauen
+    }
+
+    /// <summary>
+    /// Berechnet Spalten, Zeilen und Zentrierung aus der Fläche in Gerätepixeln und legt bei Bedarf die Bitmap neu an.
+    /// </summary>
+    private void UpdateGrid(bool force)
+    {
+        DpiScale dpi = VisualTreeHelper.GetDpi(this);
+        _dpiX = dpi.DpiScaleX;
+        _dpiY = dpi.DpiScaleY;
+
+        // Gerätepixel der Fläche; Layoutrundung liefert ganze Pixel, das Epsilon fängt Rundungsreste ab.
+        int pxW = (int)Math.Floor(ActualWidth * _dpiX + 0.01);
+        int pxH = (int)Math.Floor(ActualHeight * _dpiY + 0.01);
+        int cols = Math.Max(0, (pxW - 1) / _pitch);
+        int rows = Math.Max(0, (pxH - 1) / _pitch);
+        int bmpW = cols * _pitch + 1;
+        int bmpH = rows * _pitch + 1;
+        _offsetX = Math.Max(0, (pxW - bmpW) / 2);
+        _offsetY = Math.Max(0, (pxH - bmpH) / 2);
+
+        bool unchanged = cols == _cols && rows == _rows && _bitmap != null
+            && _bitmap.PixelWidth == bmpW && _bitmap.PixelHeight == bmpH
+            && Math.Abs(_bitmap.DpiX - dpi.PixelsPerInchX) < 0.01 && Math.Abs(_bitmap.DpiY - dpi.PixelsPerInchY) < 0.01;
+        if (unchanged && !force)
         {
-            _bitmap = null;
+            InvalidateVisual(); // nur die Zentrierung kann sich geändert haben
             return;
         }
 
-        _pixelWidth = cols * CellSize + 1;
-        _pixelHeight = rows * CellSize + 1;
-        _bitmap = new WriteableBitmap(_pixelWidth, _pixelHeight, 96 * _dpiScale, 96 * _dpiScale, PixelFormats.Bgra32, null);
-        _pixels = new uint[_pixelWidth * _pixelHeight];
-        _gridTemplate = new uint[_pixelWidth * _pixelHeight];
+        _cols = cols;
+        _rows = rows;
+        if (cols == 0 || rows == 0)
+        {
+            _bitmap = null;
+            _pixels = Array.Empty<uint>();
+            _gridTemplate = Array.Empty<uint>();
+            InvalidateVisual();
+            return;
+        }
+
+        _pixelWidth = bmpW;
+        _pixelHeight = bmpH;
+        // Bitmap-DPI = Monitor-DPI: dann entspricht ein Bitmappixel genau einem Gerätepixel.
+        _bitmap = new WriteableBitmap(bmpW, bmpH, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Bgr32, null);
+        _pixels = new uint[bmpW * bmpH];
+        _gridTemplate = new uint[bmpW * bmpH];
         Array.Fill(_gridTemplate, _gridColor);
         _states = Array.Empty<ClusterState>();
         Refresh();
@@ -182,6 +244,7 @@ public sealed class ClusterMapControl : FrameworkElement
 
         Array.Copy(_gridTemplate, _pixels, _pixels.Length);
         uint free = _palette[(int)ClusterState.Free];
+        int edge = BlockEdge;
         for (int row = 0; row < _rows; row++)
         {
             for (int col = 0; col < _cols; col++)
@@ -194,12 +257,12 @@ public sealed class ClusterMapControl : FrameworkElement
                     if ((uint)s < (uint)_palette.Length) color = _palette[s];
                 }
 
-                int x0 = col * CellSize + 1;
-                int y0 = row * CellSize + 1;
-                for (int y = 0; y < BlockSize; y++)
+                int x0 = col * _pitch + 1;
+                int y0 = row * _pitch + 1;
+                for (int y = 0; y < edge; y++)
                 {
                     int offset = (y0 + y) * _pixelWidth + x0;
-                    for (int x = 0; x < BlockSize; x++) _pixels[offset + x] = color;
+                    for (int x = 0; x < edge; x++) _pixels[offset + x] = color;
                 }
             }
         }
@@ -210,44 +273,55 @@ public sealed class ClusterMapControl : FrameworkElement
 
     protected override void OnRender(DrawingContext dc)
     {
+        // Randfläche in der Rasterfarbe; die Bitmap in ihrer natürlichen Größe (1 Bitmappixel = 1 Gerätepixel), zentriert, ohne Streckung.
         dc.DrawRectangle(_gridBrush, null, new Rect(0, 0, ActualWidth, ActualHeight));
-        if (_bitmap != null)
-            dc.DrawImage(_bitmap, new Rect(0, 0, _pixelWidth / _dpiScale, _pixelHeight / _dpiScale));
+        if (_bitmap == null) return;
+
+        var rect = new Rect(_offsetX / _dpiX, _offsetY / _dpiY, _pixelWidth / _dpiX, _pixelHeight / _dpiY);
+        // Führungslinien an allen vier Kanten: WPF rastet die Bitmap damit auf ganze Gerätepixel ein,
+        // selbst wenn ein übergeordnetes Element auf einer Bruchteilposition liegt.
+        var guidelines = new GuidelineSet(new[] { rect.Left, rect.Right }, new[] { rect.Top, rect.Bottom });
+        guidelines.Freeze();
+        dc.PushGuidelineSet(guidelines);
+        dc.DrawImage(_bitmap, rect);
+        dc.Pop();
+    }
+
+    /// <summary>Index des Blocks unter einem Punkt (in DIPs relativ zum Steuerelement) oder -1.</summary>
+    private int BlockIndexAt(Point p)
+    {
+        if (_cols == 0 || _rows == 0) return -1;
+        int px = (int)Math.Floor(p.X * _dpiX) - _offsetX - 1; // 1 px: obere/linke Rasterlinie
+        int py = (int)Math.Floor(p.Y * _dpiY) - _offsetY - 1;
+        if (px < 0 || py < 0) return -1;
+        int col = px / _pitch;
+        int row = py / _pitch;
+        if (col >= _cols || row >= _rows) return -1;
+        return row * _cols + col;
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        if (_cols == 0 || _rows == 0)
-        {
-            ToolTip = null;
-            return;
-        }
-
         Point p = e.GetPosition(this);
-        int col = (int)(p.X * _dpiScale) / CellSize;
-        int row = (int)(p.Y * _dpiScale) / CellSize;
-        if (col < 0 || row < 0 || col >= _cols || row >= _rows)
+        int index = BlockIndexAt(p);
+        if (index < 0)
         {
             ToolTip = null;
-            _lastTipIndex = -1;
             return;
         }
 
-        int index = row * _cols + col;
         ClusterState state = index < _states.Length ? _states[index] : ClusterState.Free;
         _tip.Content = $"Block {UiFormat.Number(index + 1)} von {UiFormat.Number(_cols * _rows)}: {StateText(state)}";
         _tip.HorizontalOffset = p.X + 14;
         _tip.VerticalOffset = p.Y + 18;
         if (!ReferenceEquals(ToolTip, _tip)) ToolTip = _tip;
-        _lastTipIndex = index;
     }
 
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e);
         ToolTip = null;
-        _lastTipIndex = -1;
     }
 
     /// <summary>Deutsche Bezeichnung eines Kartenzustands.</summary>

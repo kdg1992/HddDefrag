@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:HddDefrag.UI"
         Title="Defragmentierung" Width="1100" Height="720" MinWidth="900" MinHeight="650"
-        Style="{StaticResource Win98Window}">
+        Style="{StaticResource Win98Window}"
+        PreviewKeyDown="Window_PreviewKeyDown">
   <Window.Resources>
     <Style x:Key="DriveItemStyle" TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
       <Setter Property="IsEnabled" Value="{Binding IsAllowed, Mode=OneWay}" />
@@ -81,7 +82,7 @@
         </Grid.RowDefinitions>
 
         <ContentControl Grid.Row="0" Style="{StaticResource Win98Sunken}" Background="#404040" MinHeight="140">
-          <ui:ClusterMapControl x:Name="Map" Margin="2" />
+          <ui:ClusterMapControl x:Name="Map" BlockPitch="8" Margin="2" />
         </ContentControl>
 
         <WrapPanel Grid.Row="1" Margin="2,8,0,0">
@@ -111,6 +112,8 @@
         <Button x:Name="DefragButton" Content="Defragmentieren" Margin="0,0,0,6" Click="DefragButton_Click" />
         <Button x:Name="PauseButton" Content="Pause" Margin="0,0,0,6" Click="PauseButton_Click" />
         <Button x:Name="CancelButton" Content="Abbrechen" Margin="0,0,0,6" Click="CancelButton_Click" />
+        <Button x:Name="FullscreenButton" Content="Vollbild" Margin="0,0,0,6" Click="FullscreenButton_Click"
+                ToolTip="Zeigt die Clusterkarte im Vollbild (F11)" />
         <Button x:Name="ExitButton" Content="Beenden" Margin="0,0,0,10" Click="ExitButton_Click" />
 
         <GroupBox Header="Ergebnis">

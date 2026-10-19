@@ -1,0 +1,66 @@
+<Window x:Class="HddDefrag.UI.FullscreenMapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:HddDefrag.UI"
+        Title="Defragmentierung – Vollbild"
+        WindowStyle="None" ResizeMode="NoResize"
+        ShowInTaskbar="False" WindowStartupLocation="Manual"
+        Background="#C0C0C0"
+        Style="{StaticResource Win98Window}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+  <Window.Resources>
+    <Style x:Key="LegendText" TargetType="TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="4,0,12,0" />
+    </Style>
+    <Style x:Key="LegendBox" TargetType="Border">
+      <Setter Property="Width" Value="12" />
+      <Setter Property="Height" Value="12" />
+      <Setter Property="BorderBrush" Value="#404040" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Margin="6">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- Karte: füllt die Fläche, das Raster wird darin zentriert (Rastermaß 7 = 6 px Block + 1 px Linie) -->
+    <ContentControl Grid.Row="0" Style="{StaticResource Win98Sunken}" Background="#404040">
+      <ui:ClusterMapControl x:Name="Map" BlockPitch="7" Margin="2" />
+    </ContentControl>
+
+    <!-- Schmaler Streifen: Legende, Statuszeile, Hinweis und Schließen -->
+    <Grid Grid.Row="1" Margin="0,6,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapFreeBrush}" />
+        <TextBlock Style="{StaticResource LegendText}" Text="Frei" />
+        <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapUsedBrush}" />
+        <TextBlock Style="{StaticResource LegendText}" Text="Belegt" />
+        <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapFragmentedBrush}" />
+        <TextBlock Style="{StaticResource LegendText}" Text="Fragmentiert" />
+        <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapSystemBrush}" />
+        <TextBlock Style="{StaticResource LegendText}" Text="Systemdateien ($MFT)" />
+        <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapUnmovableBrush}" />
+        <TextBlock Style="{StaticResource LegendText}" Text="Nicht verschiebbar" />
+        <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapMovingBrush}" />
+        <TextBlock Style="{StaticResource LegendText}" Text="Wird gerade verschoben" />
+      </StackPanel>
+      <TextBlock Grid.Column="1" x:Name="StatusLine" Margin="12,0,12,0" VerticalAlignment="Center"
+                 Text="Bereit." TextTrimming="CharacterEllipsis" />
+      <TextBlock Grid.Column="2" VerticalAlignment="Center" Foreground="{StaticResource Win98GrayText}"
+                 Text="Esc oder F11 beendet den Vollbildmodus" />
+      <Button Grid.Column="3" x:Name="CloseButton" Content="Schließen" Margin="12,0,0,0"
+              IsCancel="True" Click="CloseButton_Click" />
+    </Grid>
+  </Grid>
+</Window>

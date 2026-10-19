@@ -54,6 +54,7 @@ public partial class MainWindow : Window
     private bool _paused;
     private bool _closeWhenDone;
     private bool _suppressSelection;
+    private FullscreenMapWindow? _fullscreen;
 
     // Log: Engine-Threads reihen nur ein, ein einzelner Dispatcher-Aufruf leert die Warteschlange.
     private readonly ConcurrentQueue<string> _logQueue = new();
@@ -173,11 +174,13 @@ public partial class MainWindow : Window
             engine.Progress -= onProgress;
         };
         Map.Engine = engine;
+        if (_fullscreen != null) _fullscreen.Engine = engine;
     }
 
     private void DisposeEngine()
     {
         Map.Engine = null;
+        if (_fullscreen != null) _fullscreen.Engine = null;
         _detachEngine?.Invoke();
         _detachEngine = null;
         var engine = _engine;
@@ -205,7 +208,7 @@ public partial class MainWindow : Window
         if (!ok || result == null) return;
 
         ShowResult(engine, result);
-        var dialog = new AnalysisDoneDialog(engine.Drive, result) { Owner = this };
+        var dialog = new AnalysisDoneDialog(engine.Drive, result) { Owner = DialogOwner };
         if (dialog.ShowDialog() == true) await DefragAsync();
     }
 
@@ -215,7 +218,7 @@ public partial class MainWindow : Window
         if (engine == null || _running) return;
 
         // Sicherheitsabfrage: IMMER vor dem Verschieben von Dateien.
-        var confirm = new ConfirmDefragDialog(engine.Drive) { Owner = this };
+        var confirm = new ConfirmDefragDialog(engine.Drive) { Owner = DialogOwner };
         if (confirm.ShowDialog() != true)
         {
             EnqueueLog("Defragmentierung nicht bestätigt – es wurde nichts verändert.");
@@ -311,7 +314,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var answer = MessageBox.Show(this,
+            var answer = MessageBox.Show(DialogOwner,
                 "Es läuft gerade ein Vorgang. Soll er abgebrochen und das Programm beendet werden?",
                 "Defragmentierung", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
             e.Cancel = true;
@@ -327,6 +330,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        _fullscreen?.Close();
         DisposeEngine();
         base.OnClosing(e);
     }
@@ -344,9 +348,47 @@ public partial class MainWindow : Window
         PauseButton.Content = _paused ? "Fortsetzen" : "Pause";
         CancelButton.IsEnabled = _running && !_closeWhenDone;
         ExitButton.IsEnabled = !_running;
+        FullscreenButton.IsEnabled = hasEngine;
+        if (!hasEngine) _fullscreen?.Close(); // ohne Engine gibt es nichts mehr anzuzeigen
     }
 
-    private static string PhaseText(EnginePhase phase) => phase switch
+    // -------------------------------------------------------------- Vollbild
+
+    /// <summary>Besitzer für Dialoge: das Vollbildfenster, solange es offen ist (sonst läge der Dialog dahinter).</summary>
+    private Window DialogOwner => _fullscreen is { IsVisible: true } fs ? fs : this;
+
+    private void FullscreenButton_Click(object sender, RoutedEventArgs e) => ToggleFullscreen();
+
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.F11 && !e.Handled)
+        {
+            e.Handled = true;
+            ToggleFullscreen();
+        }
+    }
+
+    private void ToggleFullscreen()
+    {
+        if (_fullscreen != null)
+        {
+            _fullscreen.Close();
+            return;
+        }
+        if (_engine == null) return;
+
+        // Das Hauptfenster bleibt dahinter bestehen, damit Log und Lauf unverändert weiterarbeiten.
+        string status = MessageLine.Text.Length > 0 ? $"{StatusLine.Text} – {MessageLine.Text}" : StatusLine.Text;
+        var window = new FullscreenMapWindow(_engine, status);
+        window.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_fullscreen, window)) _fullscreen = null;
+        };
+        _fullscreen = window;
+        window.ShowOn(this);
+    }
+
+    internal static string PhaseText(EnginePhase phase) => phase switch
     {
         EnginePhase.Idle => "Bereit",
         EnginePhase.ReadingBitmap => "Belegungsbitmap lesen",
@@ -452,6 +494,6 @@ public partial class MainWindow : Window
     private void ReportError(string headline, Exception ex, bool alsoLog = true)
     {
         if (alsoLog) EnqueueLog($"{headline}: {ex.Message}");
-        MessageBox.Show(this, $"{headline}.\n\n{ex.Message}", "Defragmentierung", MessageBoxButton.OK, MessageBoxImage.Error);
+        MessageBox.Show(DialogOwner, $"{headline}.\n\n{ex.Message}", "Defragmentierung", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 }
