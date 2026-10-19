@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>HddDefrag</RootNamespace>
+    <AssemblyName>HddDefrag</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
+    <Version>0.1.0</Version>
+    <Authors>kdg1992</Authors>
+    <Product>HddDefrag</Product>
+    <Description>Grafisches Defragmentierungs-Tool im Stil von Windows 98, nur für Festplatten (HDD).</Description>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>
