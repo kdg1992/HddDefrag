@@ -50,6 +50,7 @@ Der Demo-Modus verwendet simulierte Laufwerke und benötigt keine Adminrechte. M
 3. **Defragmentieren**: öffnet einen Bestätigungsdialog mit Laufwerk, Modell, Bus und Medientyp. Der Lauf startet erst, wenn die Checkbox „Ich habe verstanden, dass Dateien auf diesem Laufwerk physisch verschoben werden“ aktiviert ist.
 4. **Pause** und **Fortsetzen** halten den Lauf an bzw. setzen ihn fort. **Abbrechen** beendet ihn.
 5. Das Protokoll im Hauptfenster zeigt die Schritte des Laufs.
+6. **Vollbild** (Schaltfläche oder Taste F11) zeigt die Clusterkarte bildschirmfüllend wie die Detailansicht des Windows-98-Defrag; Esc oder F11 beendet den Vollbildmodus. Ein laufender Vorgang läuft dabei weiter.
 
 ### Legende der Clusterkarte
 
