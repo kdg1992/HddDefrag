@@ -19,9 +19,17 @@ public partial class App : Application
 
         if (!demo && !IsAdministrator())
         {
+            // Selbst mit Adminrechten neu starten (UAC-Abfrage). Das Manifest steht auf asInvoker,
+            // damit der Demo-Modus ohne Rechteanhebung läuft.
+            if (TryRelaunchElevated(e.Args))
+            {
+                Shutdown(0);
+                return;
+            }
+
             MessageBox.Show(
                 "HddDefrag benötigt Administratorrechte, um die Belegungs-Bitmap zu lesen und Dateien zu verschieben.\n\n" +
-                "Bitte das Programm per Rechtsklick → „Als Administrator ausführen“ starten.",
+                "Die Rechteanhebung wurde abgelehnt. Bitte das Programm per Rechtsklick → „Als Administrator ausführen“ starten.",
                 "Administratorrechte erforderlich", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
             return;
@@ -35,6 +43,33 @@ public partial class App : Application
         var window = new MainWindow(enumerator, engineFactory);
         MainWindow = window;
         window.Show();
+    }
+
+    /// <summary>Startet dieselbe EXE mit denselben Argumenten über den Verb „runas“ (UAC). false, wenn der Nutzer ablehnt.</summary>
+    private static bool TryRelaunchElevated(string[] args)
+    {
+        string? exePath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(exePath)) return false;
+
+        var startInfo = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = exePath,
+            UseShellExecute = true,
+            Verb = "runas",
+            WorkingDirectory = Environment.CurrentDirectory,
+        };
+        foreach (var arg in args) startInfo.ArgumentList.Add(arg);
+
+        try
+        {
+            System.Diagnostics.Process.Start(startInfo);
+            return true;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // ERROR_CANCELLED: Nutzer hat die UAC-Abfrage abgelehnt.
+            return false;
+        }
     }
 
     private static bool IsAdministrator()

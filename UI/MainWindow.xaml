@@ -1,10 +1,157 @@
 <Window x:Class="HddDefrag.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="HddDefrag" Width="900" Height="650"
-        Background="{StaticResource Win98Background}">
-  <!-- PLATZHALTER – wird durch das echte Hauptfenster ersetzt. -->
-  <Grid>
-    <TextBlock Text="Platzhalter" Margin="8" />
+        xmlns:ui="clr-namespace:HddDefrag.UI"
+        Title="Defragmentierung" Width="1100" Height="720" MinWidth="900" MinHeight="650"
+        Style="{StaticResource Win98Window}">
+  <Window.Resources>
+    <Style x:Key="DriveItemStyle" TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+      <Setter Property="IsEnabled" Value="{Binding IsAllowed, Mode=OneWay}" />
+    </Style>
+    <Style x:Key="LegendText" TargetType="TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="4,0,16,0" />
+    </Style>
+    <Style x:Key="LegendBox" TargetType="Border">
+      <Setter Property="Width" Value="12" />
+      <Setter Property="Height" Value="12" />
+      <Setter Property="BorderBrush" Value="#404040" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="ResultLabel" TargetType="TextBlock">
+      <Setter Property="Margin" Value="0,2,8,2" />
+    </Style>
+    <Style x:Key="ResultValue" TargetType="TextBlock">
+      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Margin="8">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- Laufwerksliste -->
+    <GroupBox Grid.Row="0" Header="Laufwerk auswählen">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <ListView x:Name="DriveList" Height="150" SelectionMode="Single"
+                  ItemContainerStyle="{StaticResource DriveItemStyle}"
+                  SelectionChanged="DriveList_SelectionChanged">
+          <ListView.View>
+            <GridView AllowsColumnReorder="False">
+              <GridViewColumn Header="Laufwerk" Width="65" DisplayMemberBinding="{Binding Letter}" />
+              <GridViewColumn Header="Bezeichnung" Width="80" DisplayMemberBinding="{Binding Label}" />
+              <GridViewColumn Header="Typ" Width="95" DisplayMemberBinding="{Binding MediaText}" />
+              <GridViewColumn Header="Modell" Width="140" DisplayMemberBinding="{Binding Model}" />
+              <GridViewColumn Header="Bus" Width="45" DisplayMemberBinding="{Binding Bus}" />
+              <GridViewColumn Header="Dateisystem" Width="75" DisplayMemberBinding="{Binding FileSystem}" />
+              <GridViewColumn Header="Größe" Width="75" DisplayMemberBinding="{Binding SizeText}" />
+              <GridViewColumn Header="Frei" Width="75" DisplayMemberBinding="{Binding FreeText}" />
+              <GridViewColumn Header="Status" Width="240" DisplayMemberBinding="{Binding Status}" />
+            </GridView>
+          </ListView.View>
+        </ListView>
+        <Button Grid.Column="1" x:Name="ReloadButton" Content="Laufwerke neu laden" Margin="8,0,0,0"
+                VerticalAlignment="Top" Click="ReloadButton_Click" />
+      </Grid>
+    </GroupBox>
+
+    <!-- Karte, Fortschritt und Bedienung -->
+    <Grid Grid.Row="1" Margin="0,6,0,6">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="8" />
+        <ColumnDefinition Width="230" />
+      </Grid.ColumnDefinitions>
+
+      <Grid Grid.Column="0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ContentControl Grid.Row="0" Style="{StaticResource Win98Sunken}" Background="#404040" MinHeight="140">
+          <ui:ClusterMapControl x:Name="Map" Margin="2" />
+        </ContentControl>
+
+        <WrapPanel Grid.Row="1" Margin="2,8,0,0">
+          <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapFreeBrush}" />
+          <TextBlock Style="{StaticResource LegendText}" Text="Frei" />
+          <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapUsedBrush}" />
+          <TextBlock Style="{StaticResource LegendText}" Text="Belegt" />
+          <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapFragmentedBrush}" />
+          <TextBlock Style="{StaticResource LegendText}" Text="Fragmentiert" />
+          <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapSystemBrush}" />
+          <TextBlock Style="{StaticResource LegendText}" Text="Systemdateien ($MFT)" />
+          <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapUnmovableBrush}" />
+          <TextBlock Style="{StaticResource LegendText}" Text="Nicht verschiebbar" />
+          <Border Style="{StaticResource LegendBox}" Background="{StaticResource MapMovingBrush}" />
+          <TextBlock Style="{StaticResource LegendText}" Text="Wird gerade verschoben" />
+        </WrapPanel>
+
+        <StackPanel Grid.Row="2" Margin="0,8,0,0">
+          <ProgressBar x:Name="Progress" Value="0" />
+          <TextBlock x:Name="StatusLine" Margin="2,6,0,0" Text="Bereit." TextTrimming="CharacterEllipsis" />
+          <TextBlock x:Name="MessageLine" Margin="2,2,0,0" Text="" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Column="2">
+        <Button x:Name="AnalyzeButton" Content="Analysieren" Margin="0,0,0,6" Click="AnalyzeButton_Click" />
+        <Button x:Name="DefragButton" Content="Defragmentieren" Margin="0,0,0,6" Click="DefragButton_Click" />
+        <Button x:Name="PauseButton" Content="Pause" Margin="0,0,0,6" Click="PauseButton_Click" />
+        <Button x:Name="CancelButton" Content="Abbrechen" Margin="0,0,0,6" Click="CancelButton_Click" />
+        <Button x:Name="ExitButton" Content="Beenden" Margin="0,0,0,10" Click="ExitButton_Click" />
+
+        <GroupBox Header="Ergebnis">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Style="{StaticResource ResultLabel}" Text="Dateien:" />
+            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ResFiles" Style="{StaticResource ResultValue}" Text="–" />
+            <TextBlock Grid.Row="1" Style="{StaticResource ResultLabel}" Text="Fragmentierte Dateien:" />
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ResFragFiles" Style="{StaticResource ResultValue}" Text="–" />
+            <TextBlock Grid.Row="2" Style="{StaticResource ResultLabel}" Text="Fragmente:" />
+            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ResFragments" Style="{StaticResource ResultValue}" Text="–" />
+            <TextBlock Grid.Row="3" Style="{StaticResource ResultLabel}" Text="Fragmentierung:" />
+            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="ResPercent" Style="{StaticResource ResultValue}" Text="–" />
+            <TextBlock Grid.Row="4" Style="{StaticResource ResultLabel}" Text="Belegt:" />
+            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ResUsed" Style="{StaticResource ResultValue}" Text="–" />
+            <TextBlock Grid.Row="5" Style="{StaticResource ResultLabel}" Text="Frei:" />
+            <TextBlock Grid.Row="5" Grid.Column="1" x:Name="ResFree" Style="{StaticResource ResultValue}" Text="–" />
+            <TextBlock Grid.Row="6" Style="{StaticResource ResultLabel}" Text="Größter freier Bereich:" />
+            <TextBlock Grid.Row="6" Grid.Column="1" x:Name="ResLargest" Style="{StaticResource ResultValue}" Text="–" />
+          </Grid>
+        </GroupBox>
+      </StackPanel>
+    </Grid>
+
+    <!-- Protokoll -->
+    <GroupBox Grid.Row="2" Header="Protokoll">
+      <TextBox x:Name="LogBox" Height="115" IsReadOnly="True" TextWrapping="NoWrap"
+               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible"
+               FontFamily="Lucida Console, Consolas" FontSize="11" />
+    </GroupBox>
   </Grid>
 </Window>

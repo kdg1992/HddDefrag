@@ -1,5 +1,471 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- PLATZHALTER – wird durch das echte Win98-Theme ersetzt. -->
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:ui="clr-namespace:HddDefrag.UI">
+  <!-- Windows-98-Look: grauer Hintergrund, 3D-Rahmen ohne Rundungen, keine Animationen. -->
+
+  <!-- ===== Grundfarben und Schrift ===== -->
   <SolidColorBrush x:Key="Win98Background" Color="#C0C0C0" />
+  <SolidColorBrush x:Key="Win98Highlight" Color="#000080" />
+  <SolidColorBrush x:Key="Win98HighlightText" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Win98GrayText" Color="#808080" />
+  <SolidColorBrush x:Key="Win98WindowText" Color="#000000" />
+  <SolidColorBrush x:Key="Win98Field" Color="#FFFFFF" />
+  <FontFamily x:Key="Win98FontFamily">Microsoft Sans Serif, Tahoma</FontFamily>
+  <sys:Double x:Key="Win98FontSize">11</sys:Double>
+
+  <!-- ===== Farben der Clusterkarte ===== -->
+  <Color x:Key="MapFreeColor">#FFFFFF</Color>
+  <Color x:Key="MapUsedColor">#0000FF</Color>
+  <Color x:Key="MapSystemColor">#00A000</Color>
+  <Color x:Key="MapUnmovableColor">#606060</Color>
+  <Color x:Key="MapFragmentedColor">#FF0000</Color>
+  <Color x:Key="MapMovingColor">#FFFF00</Color>
+  <Color x:Key="MapGridColor">#404040</Color>
+  <SolidColorBrush x:Key="MapFreeBrush" Color="{StaticResource MapFreeColor}" />
+  <SolidColorBrush x:Key="MapUsedBrush" Color="{StaticResource MapUsedColor}" />
+  <SolidColorBrush x:Key="MapSystemBrush" Color="{StaticResource MapSystemColor}" />
+  <SolidColorBrush x:Key="MapUnmovableBrush" Color="{StaticResource MapUnmovableColor}" />
+  <SolidColorBrush x:Key="MapFragmentedBrush" Color="{StaticResource MapFragmentedColor}" />
+  <SolidColorBrush x:Key="MapMovingBrush" Color="{StaticResource MapMovingColor}" />
+  <SolidColorBrush x:Key="MapGridBrush" Color="{StaticResource MapGridColor}" />
+
+  <!-- Gepunktetes Schachbrettmuster für Scrollbar-Spuren -->
+  <DrawingBrush x:Key="Win98Checker" TileMode="Tile" Viewport="0,0,2,2" ViewportUnits="Absolute"
+                Viewbox="0,0,2,2" ViewboxUnits="Absolute">
+    <DrawingBrush.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing Brush="#C0C0C0">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="0,0,2,2" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#FFFFFF">
+          <GeometryDrawing.Geometry>
+            <GeometryGroup>
+              <RectangleGeometry Rect="0,0,1,1" />
+              <RectangleGeometry Rect="1,1,1,1" />
+            </GeometryGroup>
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+      </DrawingGroup>
+    </DrawingBrush.Drawing>
+  </DrawingBrush>
+
+  <!-- Navy-Blöcke des Fortschrittsbalkens -->
+  <DrawingBrush x:Key="Win98ProgressBlocks" TileMode="Tile" Viewport="0,0,10,100" ViewportUnits="Absolute"
+                Viewbox="0,0,10,100" ViewboxUnits="Absolute">
+    <DrawingBrush.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing Brush="Transparent">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="0,0,10,100" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#000080">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="0,0,8,100" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+      </DrawingGroup>
+    </DrawingBrush.Drawing>
+  </DrawingBrush>
+
+  <!-- ===== Fenster ===== -->
+  <Style x:Key="Win98Window" TargetType="Window">
+    <Setter Property="Background" Value="{StaticResource Win98Background}" />
+    <Setter Property="FontFamily" Value="{StaticResource Win98FontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource Win98FontSize}" />
+    <Setter Property="Foreground" Value="{StaticResource Win98WindowText}" />
+    <Setter Property="UseLayoutRounding" Value="True" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+  </Style>
+
+  <!-- ===== Schaltfläche ===== -->
+  <Style TargetType="Button">
+    <Setter Property="Background" Value="{StaticResource Win98Background}" />
+    <Setter Property="Foreground" Value="{StaticResource Win98WindowText}" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="MinWidth" Value="75" />
+    <Setter Property="MinHeight" Value="23" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="DefaultFrame" BorderThickness="1" BorderBrush="Transparent">
+            <ui:BevelBorder x:Name="Bevel" Kind="Raised" Background="{TemplateBinding Background}">
+              <Grid>
+                <ContentPresenter x:Name="Content" Margin="{TemplateBinding Padding}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  RecognizesAccessKey="True" />
+                <Rectangle x:Name="FocusRect" Margin="2" Stroke="#000000" StrokeDashArray="1 1"
+                           StrokeThickness="1" SnapsToDevicePixels="True" Visibility="Collapsed"
+                           IsHitTestVisible="False" />
+              </Grid>
+            </ui:BevelBorder>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsDefault" Value="True">
+              <Setter TargetName="DefaultFrame" Property="BorderBrush" Value="#000000" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="FocusRect" Property="Visibility" Value="Visible" />
+              <Setter TargetName="DefaultFrame" Property="BorderBrush" Value="#000000" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bevel" Property="Kind" Value="Pressed" />
+              <Setter TargetName="Content" Property="RenderTransform">
+                <Setter.Value>
+                  <TranslateTransform X="1" Y="1" />
+                </Setter.Value>
+              </Setter>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Foreground" Value="{StaticResource Win98GrayText}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Kontrollkästchen ===== -->
+  <Style TargetType="CheckBox">
+    <Setter Property="Foreground" Value="{StaticResource Win98WindowText}" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <Grid Background="Transparent">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ui:BevelBorder x:Name="Box" Kind="Sunken" Background="#FFFFFF" Width="13" Height="13"
+                            VerticalAlignment="Top" Margin="0,1,0,0">
+              <Polyline x:Name="Check" Points="1,3 3,5 7,1" Stroke="#000000" StrokeThickness="2"
+                        Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </ui:BevelBorder>
+            <ContentPresenter Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center"
+                              RecognizesAccessKey="True" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Foreground" Value="{StaticResource Win98GrayText}" />
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource Win98Background}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Gruppenrahmen (geätzt) ===== -->
+  <Style TargetType="GroupBox">
+    <Setter Property="Padding" Value="6,4,6,6" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="GroupBox">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <ui:BevelBorder Grid.RowSpan="2" Kind="Etched" Margin="0,7,0,0" />
+            <Border Grid.Row="0" HorizontalAlignment="Left" Margin="8,0,0,0" Padding="3,0"
+                    Background="{StaticResource Win98Background}">
+              <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+            </Border>
+            <ContentPresenter Grid.Row="1" Margin="{TemplateBinding Padding}" />
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Abgesenkter Rahmen für beliebige Inhalte ===== -->
+  <Style x:Key="Win98Sunken" TargetType="ContentControl">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContentControl">
+          <ui:BevelBorder Kind="Sunken" Background="{TemplateBinding Background}">
+            <ContentPresenter />
+          </ui:BevelBorder>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Textfeld ===== -->
+  <Style TargetType="TextBox">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="Foreground" Value="{StaticResource Win98WindowText}" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <ui:BevelBorder Kind="Sunken" Background="{TemplateBinding Background}">
+            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                          HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}"
+                          VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}" />
+          </ui:BevelBorder>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Tooltip ===== -->
+  <Style TargetType="ToolTip">
+    <Setter Property="Background" Value="#FFFFE1" />
+    <Setter Property="Foreground" Value="#000000" />
+    <Setter Property="BorderBrush" Value="#000000" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="3,1" />
+    <Setter Property="FontFamily" Value="{StaticResource Win98FontFamily}" />
+    <Setter Property="FontSize" Value="{StaticResource Win98FontSize}" />
+    <Setter Property="HasDropShadow" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToolTip">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Fortschrittsbalken aus Blöcken ===== -->
+  <Style TargetType="ProgressBar">
+    <Setter Property="Height" Value="20" />
+    <Setter Property="Minimum" Value="0" />
+    <Setter Property="Maximum" Value="100" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ProgressBar">
+          <ui:BevelBorder Kind="Sunken" Background="{StaticResource Win98Background}">
+            <Grid Margin="1">
+              <Rectangle x:Name="PART_Track" Fill="Transparent" />
+              <Rectangle x:Name="PART_Indicator" HorizontalAlignment="Left"
+                         Fill="{StaticResource Win98ProgressBlocks}" />
+            </Grid>
+          </ui:BevelBorder>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ===== Scrollbalken ===== -->
+  <Style x:Key="Win98ScrollButton" TargetType="RepeatButton">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="IsTabStop" Value="False" />
+    <Setter Property="Foreground" Value="#000000" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RepeatButton">
+          <ui:BevelBorder x:Name="Bevel" Kind="Raised" Background="{StaticResource Win98Background}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </ui:BevelBorder>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bevel" Property="Kind" Value="Pressed" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Foreground" Value="{StaticResource Win98GrayText}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="Win98ScrollPage" TargetType="RepeatButton">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="IsTabStop" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RepeatButton">
+          <Border Background="Transparent" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="Win98ScrollThumb" TargetType="Thumb">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <ui:BevelBorder Kind="Raised" Background="{StaticResource Win98Background}" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <ControlTemplate x:Key="Win98VScroll" TargetType="ScrollBar">
+    <Grid Background="{StaticResource Win98Checker}" SnapsToDevicePixels="True">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="16" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="16" />
+      </Grid.RowDefinitions>
+      <RepeatButton Grid.Row="0" Command="ScrollBar.LineUpCommand" Style="{StaticResource Win98ScrollButton}">
+        <Path Data="M0,4 L4,0 L8,4 Z"
+              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RepeatButton}}" />
+      </RepeatButton>
+      <Track x:Name="PART_Track" Grid.Row="1" IsDirectionReversed="True">
+        <Track.DecreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageUpCommand" Style="{StaticResource Win98ScrollPage}" />
+        </Track.DecreaseRepeatButton>
+        <Track.Thumb>
+          <Thumb Style="{StaticResource Win98ScrollThumb}" />
+        </Track.Thumb>
+        <Track.IncreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource Win98ScrollPage}" />
+        </Track.IncreaseRepeatButton>
+      </Track>
+      <RepeatButton Grid.Row="2" Command="ScrollBar.LineDownCommand" Style="{StaticResource Win98ScrollButton}">
+        <Path Data="M0,0 L8,0 L4,4 Z"
+              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RepeatButton}}" />
+      </RepeatButton>
+    </Grid>
+  </ControlTemplate>
+
+  <ControlTemplate x:Key="Win98HScroll" TargetType="ScrollBar">
+    <Grid Background="{StaticResource Win98Checker}" SnapsToDevicePixels="True">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="16" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="16" />
+      </Grid.ColumnDefinitions>
+      <RepeatButton Grid.Column="0" Command="ScrollBar.LineLeftCommand" Style="{StaticResource Win98ScrollButton}">
+        <Path Data="M4,0 L4,8 L0,4 Z"
+              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RepeatButton}}" />
+      </RepeatButton>
+      <Track x:Name="PART_Track" Grid.Column="1">
+        <Track.DecreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageLeftCommand" Style="{StaticResource Win98ScrollPage}" />
+        </Track.DecreaseRepeatButton>
+        <Track.Thumb>
+          <Thumb Style="{StaticResource Win98ScrollThumb}" />
+        </Track.Thumb>
+        <Track.IncreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageRightCommand" Style="{StaticResource Win98ScrollPage}" />
+        </Track.IncreaseRepeatButton>
+      </Track>
+      <RepeatButton Grid.Column="2" Command="ScrollBar.LineRightCommand" Style="{StaticResource Win98ScrollButton}">
+        <Path Data="M0,0 L4,4 L0,8 Z"
+              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RepeatButton}}" />
+      </RepeatButton>
+    </Grid>
+  </ControlTemplate>
+
+  <Style TargetType="ScrollBar">
+    <Setter Property="Template" Value="{StaticResource Win98VScroll}" />
+    <Setter Property="Width" Value="16" />
+    <Setter Property="MinWidth" Value="16" />
+    <Style.Triggers>
+      <Trigger Property="Orientation" Value="Horizontal">
+        <Setter Property="Template" Value="{StaticResource Win98HScroll}" />
+        <Setter Property="Width" Value="Auto" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="MinHeight" Value="16" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <!-- ===== Liste mit Spaltenköpfen ===== -->
+  <Style TargetType="GridViewColumnHeader">
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Foreground" Value="{StaticResource Win98WindowText}" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="GridViewColumnHeader">
+          <Grid SnapsToDevicePixels="True">
+            <ui:BevelBorder x:Name="Bevel" Kind="Raised" Background="{StaticResource Win98Background}">
+              <ContentPresenter Margin="3,1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                RecognizesAccessKey="True" />
+            </ui:BevelBorder>
+            <Thumb x:Name="PART_HeaderGripper" HorizontalAlignment="Right" Margin="0,0,-3,0" Width="7"
+                   Cursor="SizeWE" Background="Transparent">
+              <Thumb.Template>
+                <ControlTemplate TargetType="Thumb">
+                  <Border Background="Transparent" />
+                </ControlTemplate>
+              </Thumb.Template>
+            </Thumb>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Bevel" Property="Kind" Value="Pressed" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="ListViewItem">
+    <Setter Property="Foreground" Value="{StaticResource Win98WindowText}" />
+    <Setter Property="Padding" Value="2,1" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListViewItem">
+          <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+            <GridViewRowPresenter Content="{TemplateBinding Content}"
+                                  Columns="{TemplateBinding GridView.ColumnCollection}"
+                                  VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{StaticResource Win98Highlight}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter Property="Foreground" Value="{StaticResource Win98HighlightText}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Foreground" Value="{StaticResource Win98GrayText}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style TargetType="ListView">
+    <Setter Property="Background" Value="#FFFFFF" />
+    <Setter Property="Foreground" Value="{StaticResource Win98WindowText}" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListView">
+          <ui:BevelBorder Kind="Sunken" Background="{TemplateBinding Background}">
+            <ScrollViewer Style="{DynamicResource {x:Static GridView.GridViewScrollViewerStyleKey}}"
+                          Padding="{TemplateBinding Padding}" Focusable="False">
+              <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+            </ScrollViewer>
+          </ui:BevelBorder>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 </ResourceDictionary>

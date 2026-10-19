@@ -1,0 +1,59 @@
+<Window x:Class="HddDefrag.UI.ConfirmDefragDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Defragmentierung bestätigen" Width="480" SizeToContent="Height"
+        ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Style="{StaticResource Win98Window}"
+        FocusManager.FocusedElement="{Binding ElementName=CancelButton}">
+  <Grid Margin="12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <GroupBox Grid.Row="0" Header="Ausgewähltes Laufwerk">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="90" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.Resources>
+          <Style TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,2" />
+          </Style>
+        </Grid.Resources>
+        <TextBlock Grid.Row="0" Text="Laufwerk:" />
+        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="DriveText" FontWeight="Bold" />
+        <TextBlock Grid.Row="1" Text="Modell:" />
+        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ModelText" />
+        <TextBlock Grid.Row="2" Text="Bus:" />
+        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="BusText" />
+        <TextBlock Grid.Row="3" Text="Medientyp:" />
+        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="MediaText" />
+        <TextBlock Grid.Row="4" Text="Größe:" />
+        <TextBlock Grid.Row="4" Grid.Column="1" x:Name="SizeText" />
+      </Grid>
+    </GroupBox>
+
+    <TextBlock Grid.Row="1" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="#FF0000" FontWeight="Bold"
+               Text="ACHTUNG: Beim Defragmentieren werden Dateien physisch auf dem Datenträger verschoben. Ein Stromausfall, ein Systemabsturz oder ein Hardwarefehler während des Vorgangs kann im ungünstigen Fall zu Datenverlust führen. Sichern Sie wichtige Daten vorher und lassen Sie den Rechner während des Vorgangs eingeschaltet." />
+
+    <CheckBox Grid.Row="2" x:Name="UnderstoodBox" Margin="0,14,0,0"
+              Content="Ich habe verstanden, dass Dateien auf diesem Laufwerk physisch verschoben werden" />
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button x:Name="OkButton" Content="Ja, defragmentieren" MinWidth="130" Margin="0,0,8,0"
+              IsEnabled="{Binding IsChecked, ElementName=UnderstoodBox}" Click="OkButton_Click" />
+      <Button x:Name="CancelButton" Content="Abbrechen" IsDefault="True" IsCancel="True" />
+    </StackPanel>
+  </Grid>
+</Window>
