@@ -1,0 +1,99 @@
+# Baut bei einem Tag-Push (v1.2.3) das Programm für Windows x64 und legt ein Release
+# mit ZIP-Anhängen in Gitea an. Das WPF-Projekt wird im Linux-Container mit
+# EnableWindowsTargeting gebaut; es läuft kein Windows-Runner.
+# Secrets sind nicht nötig: GITHUB_TOKEN stellt Gitea automatisch bereit.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/dotnet/sdk:10.0
+    steps:
+      # actions/checkout braucht Node; curl, jq und zip für Paket und Release-API.
+      - name: Werkzeuge bereitstellen
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends nodejs git ca-certificates curl jq zip > /dev/null
+          node --version
+          dotnet --version
+
+      - name: Code holen
+        uses: actions/checkout@v3
+
+      - name: Version aus dem Tag ableiten
+        run: |
+          set -eu
+          TAG="${GITHUB_REF_NAME:-${GITHUB_REF#refs/tags/}}"
+          VERSION="${TAG#v}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Tag $TAG, Version $VERSION"
+
+      - name: Bauen (framework-abhängig, braucht .NET 10 Desktop Runtime)
+        run: |
+          set -eu
+          dotnet publish HddDefrag.csproj -c Release -r win-x64 --self-contained false \
+            -p:EnableWindowsTargeting=true -p:Version="$VERSION" -p:PublishSingleFile=true -p:IncludeSourceRevisionInInformationalVersion=false \
+            -o publish/fdd
+          ls -la publish/fdd
+
+      - name: Bauen (eigenständig, ohne installiertes .NET)
+        run: |
+          set -eu
+          dotnet publish HddDefrag.csproj -c Release -r win-x64 --self-contained true \
+            -p:EnableWindowsTargeting=true -p:Version="$VERSION" -p:PublishSingleFile=true -p:IncludeSourceRevisionInInformationalVersion=false \
+            -o publish/sc
+          ls -la publish/sc
+
+      - name: ZIP-Pakete schnüren
+        run: |
+          set -eu
+          mkdir -p dist
+          cp README.md publish/fdd/
+          cp README.md publish/sc/
+          (cd publish/fdd && zip -qr "../../dist/HddDefrag-$TAG-win-x64.zip" .)
+          (cd publish/sc && zip -qr "../../dist/HddDefrag-$TAG-win-x64-eigenstaendig.zip" .)
+          (cd dist && sha256sum *.zip > "SHA256SUMS-$TAG.txt")
+          ls -la dist
+
+      # Auf dem Runner läuft upload-artifact nur in Version 3.
+      - name: Pakete als Artefakt ablegen
+        uses: actions/upload-artifact@v3
+        with:
+          name: HddDefrag-${{ env.TAG }}
+          path: dist
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Release in Gitea anlegen und Dateien anhängen
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API: ${{ gitea.server_url }}/api/v1/repos/${{ gitea.repository }}
+        run: |
+          set -eu
+          BODY=$(printf 'HddDefrag %s\n\n- `HddDefrag-%s-win-x64.zip`: benötigt die .NET 10 Desktop Runtime (x64).\n- `HddDefrag-%s-win-x64-eigenstaendig.zip`: bringt .NET mit, keine Installation nötig.\n\nBeide Varianten fordern beim Start Administratorrechte per UAC an. Nur Festplatten (HDD) werden defragmentiert, SSDs sind gesperrt. Details in der README.' "$TAG" "$TAG" "$TAG")
+          PAYLOAD=$(jq -n --arg tag "$TAG" --arg name "HddDefrag $TAG" --arg body "$BODY" \
+            '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}')
+
+          # Vorhandenes Release zum Tag wiederverwenden (z. B. nach erneutem Lauf).
+          ID=$(curl -sS -H "Authorization: token $TOKEN" "$API/releases/tags/$TAG" | jq -r '.id // empty' || true)
+          if [ -z "$ID" ]; then
+            ID=$(curl -sS -f -X POST -H "Authorization: token $TOKEN" -H "Content-Type: application/json" \
+              -d "$PAYLOAD" "$API/releases" | jq -r '.id')
+            echo "Release $ID angelegt"
+          else
+            echo "Release $ID existiert bereits, Anhänge werden ergänzt"
+          fi
+
+          for f in dist/*; do
+            NAME=$(basename "$f")
+            curl -sS -f -X POST -H "Authorization: token $TOKEN" \
+              -F "attachment=@$f" "$API/releases/$ID/assets?name=$NAME" > /dev/null
+            echo "Angehängt: $NAME"
+          done
+          echo "Release: ${{ gitea.server_url }}/${{ gitea.repository }}/releases/tag/$TAG"

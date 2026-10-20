@@ -92,6 +92,15 @@ Projektstruktur:
 - `Engine/`: Scan, Analyse, Defragmentierung, Kartenmodell
 - `UI/`: WPF-Oberfläche im Win98-Stil, Demo-Engine (`UI/Demo/`)
 
+## Release
+
+Ein Tag der Form `v1.2.3` auf Gitea stößt den Workflow `.gitea/workflows/release.yml` an. Er baut das Programm im .NET-10-SDK-Container für Windows x64, legt die ZIP-Pakete als Workflow-Artefakt ab und erstellt ein Release mit den Anhängen `HddDefrag-vX-win-x64.zip` (braucht die .NET 10 Desktop Runtime) und `HddDefrag-vX-win-x64-eigenstaendig.zip` (bringt .NET mit). Die Versionsnummer der EXE kommt aus dem Tag.
+
+```
+git tag v0.1.0
+git push HddDefrag main --tags
+```
+
 ## Bekannte Grenzen
 
 - Der Defragmentierer führt nur fragmentierte Dateien zusammen. Der freie Speicher wird nicht konsolidiert.

@@ -17,3 +17,7 @@ obj/
 .idea/**/dataSources.local.xml
 *.sln.DotSettings.user
 *.DotSettings.user
+
+# Publish- und Release-Ausgaben
+publish/
+dist/
