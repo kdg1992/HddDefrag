@@ -2,6 +2,8 @@
 
 Grafisches Defragmentierungs-Tool für Windows 11 im Stil des Windows-98-Defrag, mit Clusterkarte. Defragmentiert werden ausschließlich rotierende Festplatten (HDD). SSDs und NVMe-Laufwerke werden angezeigt, aber nie defragmentiert.
 
+> **Benutzung auf eigene Gefahr.** HddDefrag verschiebt Dateidaten direkt auf dem Datenträger. Vor dem ersten Einsatz auf einem Laufwerk gehört eine aktuelle Sicherung dazu. Das Programm wird ohne jede Gewährleistung bereitgestellt, siehe [Lizenz](#lizenz).
+
 ## Voraussetzungen
 
 - Windows 10 oder 11, 64 Bit
@@ -94,11 +96,11 @@ Projektstruktur:
 
 ## Release
 
-Ein Tag der Form `v1.2.3` auf Gitea stößt den Workflow `.gitea/workflows/release.yml` an. Er baut das Programm im .NET-10-SDK-Container für Windows x64, legt die ZIP-Pakete als Workflow-Artefakt ab und erstellt ein Release mit den Anhängen `HddDefrag-vX-win-x64.zip` (braucht die .NET 10 Desktop Runtime) und `HddDefrag-vX-win-x64-eigenstaendig.zip` (bringt .NET mit). Die Versionsnummer der EXE kommt aus dem Tag.
+Ein Tag der Form `v1.2.3` stößt den Workflow `.github/workflows/release.yml` an. Er baut das Programm mit dem .NET 10 SDK für Windows x64 und erstellt ein Release mit den Anhängen `HddDefrag-vX-win-x64.zip` (braucht die .NET 10 Desktop Runtime) und `HddDefrag-vX-win-x64-eigenstaendig.zip` (bringt .NET mit). Die Versionsnummer der EXE kommt aus dem Tag.
 
 ```
-git tag v0.1.0
-git push HddDefrag main --tags
+git tag v0.2.0
+git push origin main --tags
 ```
 
 ## Bekannte Grenzen
@@ -110,4 +112,6 @@ git push HddDefrag main --tags
 
 ## Lizenz
 
-Privates Projekt, keine Lizenz festgelegt.
+Copyright (C) 2026 kdg1992
+
+HddDefrag ist freie Software unter der [GNU General Public License](LICENSE), Version 3 oder (nach Ihrer Wahl) jeder späteren Version. Das Programm wird in der Hoffnung verbreitet, dass es nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG; auch ohne die implizite Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.

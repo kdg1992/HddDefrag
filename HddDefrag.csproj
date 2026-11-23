@@ -14,6 +14,8 @@
     <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
     <Version>0.1.0</Version>
     <Authors>kdg1992</Authors>
+    <Copyright>Copyright (C) 2026 kdg1992</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <Product>HddDefrag</Product>
     <Description>Grafisches Defragmentierungs-Tool im Stil von Windows 98, nur für Festplatten (HDD).</Description>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
