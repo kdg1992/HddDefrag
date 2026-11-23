@@ -1,0 +1,31 @@
+# Baut das Programm bei jedem Push und Pull Request, damit Fehler früh auffallen.
+# Das WPF-Projekt wird unter Linux mit EnableWindowsTargeting für Windows x64 gebaut.
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+
+      - name: .NET 10 SDK bereitstellen
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Bauen (${{ matrix.configuration }})
+        run: dotnet build HddDefrag.csproj -c ${{ matrix.configuration }} -r win-x64 -p:EnableWindowsTargeting=true

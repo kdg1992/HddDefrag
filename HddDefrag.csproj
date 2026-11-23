@@ -12,7 +12,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>kdg1992</Authors>
     <Copyright>Copyright (C) 2026 kdg1992</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>

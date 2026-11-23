@@ -1,5 +1,14 @@
 # HddDefrag
 
+[![Build](https://github.com/kdg1992/HddDefrag/actions/workflows/build.yml/badge.svg)](https://github.com/kdg1992/HddDefrag/actions/workflows/build.yml)
+[![Release-Workflow](https://github.com/kdg1992/HddDefrag/actions/workflows/release.yml/badge.svg)](https://github.com/kdg1992/HddDefrag/actions/workflows/release.yml)
+[![Aktuelle Version](https://img.shields.io/github/v/release/kdg1992/HddDefrag?label=Version)](https://github.com/kdg1992/HddDefrag/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kdg1992/HddDefrag/total?label=Downloads)](https://github.com/kdg1992/HddDefrag/releases)
+[![Lizenz](https://img.shields.io/github/license/kdg1992/HddDefrag?label=Lizenz)](LICENSE)
+![Plattform](https://img.shields.io/badge/Plattform-Windows%2010%20%7C%2011%20x64-0078D4)
+![.NET](https://img.shields.io/badge/.NET-10-512BD4)
+![Sprache](https://img.shields.io/github/languages/top/kdg1992/HddDefrag?label=Sprache)
+
 Grafisches Defragmentierungs-Tool für Windows 11 im Stil des Windows-98-Defrag, mit Clusterkarte. Defragmentiert werden ausschließlich rotierende Festplatten (HDD). SSDs und NVMe-Laufwerke werden angezeigt, aber nie defragmentiert.
 
 > **Benutzung auf eigene Gefahr.** HddDefrag verschiebt Dateidaten direkt auf dem Datenträger. Vor dem ersten Einsatz auf einem Laufwerk gehört eine aktuelle Sicherung dazu. Das Programm wird ohne jede Gewährleistung bereitgestellt, siehe [Lizenz](#lizenz).
